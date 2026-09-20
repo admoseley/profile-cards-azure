@@ -1,0 +1,9 @@
+IBM Plex Mono
+Copyright (c) 2017 IBM Corp. https://github.com/IBM/plex
+
+Licensed under the SIL Open Font License, Version 1.1.
+https://openfontlicense.org
+
+Subset: latin. Self-hosted rather than loaded from a font CDN, both because a
+strict default-src 'self' CSP would block a third-party origin, and because
+this project exists precisely to remove a third-party dependency.

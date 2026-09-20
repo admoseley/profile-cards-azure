@@ -3,104 +3,340 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Profile Cards</title>
-    <meta name="description" content="Self-hosted GitHub profile cards for @admoseley, prerendered every six hours." />
+    <title>Profile Cards — Telemetry</title>
+    <meta name="description" content="Self-hosted GitHub stat cards for @admoseley. Prerendered every six hours in GitHub Actions, served as static SVGs from Azure Static Web Apps." />
     <meta name="rollout-version" content="__VERSION__" />
+    <meta name="color-scheme" content="dark" />
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='14' font-size='14'>&#127942;</text></svg>" />
+
     <style>
+      /* Self-hosted, not a CDN. The entire point of this project is that a
+         third-party dependency went away; a webfont CDN would be the same bet
+         again. It also keeps the page working under a strict
+         default-src 'self' CSP. IBM Plex Mono is OFL-licensed. */
+      @font-face {
+        font-family: "Plex";
+        src: url("/fonts/ibm-plex-mono-400.woff2") format("woff2");
+        font-weight: 400; font-display: swap; font-style: normal;
+      }
+      @font-face {
+        font-family: "Plex";
+        src: url("/fonts/ibm-plex-mono-500.woff2") format("woff2");
+        font-weight: 500; font-display: swap; font-style: normal;
+      }
+      @font-face {
+        font-family: "Plex";
+        src: url("/fonts/ibm-plex-mono-600.woff2") format("woff2");
+        font-weight: 600; font-display: swap; font-style: normal;
+      }
+
       :root {
-        --bg: #ffffff;
-        --fg: #1f2328;
-        --muted: #59636e;
-        --line: #d1d9e0;
-        --accent: #0969da;
-        --card: #f6f8fa;
+        --void: #08090a;
+        --panel: #0e1013;
+        --line: #1d2127;
+        --line-bright: #2b3038;
+        --text: #b9bec5;
+        --dim: #6e747c;
+        --bright: #eef1f4;
+        --amber: #fb8c00;
+        --cyan: #a9fef7;
+        --pink: #fe428e;
+        --mono: "Plex", ui-monospace, SFMono-Regular, Menlo, monospace;
       }
-      @media (prefers-color-scheme: dark) {
-        :root:not([data-theme="light"]) {
-          --bg: #0d1117;
-          --fg: #e6edf3;
-          --muted: #9198a1;
-          --line: #30363d;
-          --accent: #4493f8;
-          --card: #151b23;
-        }
-      }
-      :root[data-theme="dark"] {
-        --bg: #0d1117;
-        --fg: #e6edf3;
-        --muted: #9198a1;
-        --line: #30363d;
-        --accent: #4493f8;
-        --card: #151b23;
-      }
+
       * { box-sizing: border-box; }
+
+      html { scroll-behavior: smooth; }
+
       body {
         margin: 0;
-        padding: 48px 16px 64px;
-        background: var(--bg);
-        color: var(--fg);
-        font: 16px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Ubuntu, sans-serif;
+        background: var(--void);
+        color: var(--text);
+        font-family: var(--mono);
+        font-size: 14px;
+        line-height: 1.65;
+        -webkit-font-smoothing: antialiased;
+        position: relative;
+        overflow-x: hidden;
       }
-      main { max-width: 640px; margin: 0 auto; }
-      h1 { font-size: 1.6rem; margin: 0 0 4px; letter-spacing: -0.01em; }
-      .sub { color: var(--muted); margin: 0 0 32px; }
-      .card {
+
+      /* Atmosphere: a faint engineering grid, a single warm light source in the
+         upper left, and a grain layer so the flat black has some tooth. */
+      body::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        background-image:
+          linear-gradient(var(--line) 1px, transparent 1px),
+          linear-gradient(90deg, var(--line) 1px, transparent 1px);
+        background-size: 64px 64px;
+        opacity: 0.35;
+        mask-image: radial-gradient(ellipse 120% 80% at 20% 0%, #000 20%, transparent 75%);
+        z-index: 0;
+      }
+      body::after {
+        content: "";
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        z-index: 1;
+        opacity: 0.035;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)'/%3E%3C/svg%3E");
+      }
+
+      .glow {
+        position: fixed;
+        top: -30vh; left: -10vw;
+        width: 70vw; height: 70vh;
+        background: radial-gradient(circle, rgba(251, 140, 0, 0.13), transparent 62%);
+        pointer-events: none;
+        z-index: 0;
+        filter: blur(20px);
+      }
+
+      .wrap {
+        position: relative;
+        z-index: 2;
+        max-width: 860px;
+        margin: 0 auto;
+        padding: 0 16px 96px;
+      }
+
+      /* ---- status strip ---------------------------------------------- */
+      .status {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 8px 18px;
+        padding: 14px 2px;
+        border-bottom: 1px solid var(--line);
+        font-size: 11px;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--dim);
+      }
+      .live { display: inline-flex; align-items: center; gap: 7px; color: var(--amber); }
+      .dot {
+        width: 6px; height: 6px; border-radius: 50%;
+        background: var(--amber);
+        box-shadow: 0 0 0 0 rgba(251, 140, 0, 0.7);
+        animation: pulse 2.4s ease-out infinite;
+      }
+      @keyframes pulse {
+        0%   { box-shadow: 0 0 0 0 rgba(251, 140, 0, 0.6); }
+        70%  { box-shadow: 0 0 0 7px rgba(251, 140, 0, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(251, 140, 0, 0); }
+      }
+      .status .sep { color: var(--line-bright); }
+
+      /* ---- masthead --------------------------------------------------- */
+      header { padding: 72px 0 48px; }
+      .eyebrow {
+        font-size: 11px; letter-spacing: 0.34em; text-transform: uppercase;
+        color: var(--amber); margin: 0 0 22px;
+      }
+      h1 {
+        font-size: clamp(2.1rem, 7.5vw, 3.9rem);
+        line-height: 1.02;
+        letter-spacing: -0.035em;
+        font-weight: 600;
+        color: var(--bright);
+        margin: 0;
+      }
+      h1 .thin { color: var(--dim); font-weight: 400; }
+      .lede {
+        max-width: 54ch;
+        margin: 26px 0 0;
+        color: var(--text);
+      }
+      .lede a { color: var(--cyan); text-decoration-color: rgba(169, 254, 247, 0.4); }
+
+      /* ---- spec table ------------------------------------------------- */
+      .spec {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 1px;
+        margin: 44px 0 0;
+        background: var(--line);
         border: 1px solid var(--line);
-        border-radius: 10px;
-        background: var(--card);
-        padding: 16px;
-        margin-bottom: 16px;
       }
-      .card h2 { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.06em;
-                 color: var(--muted); margin: 0 0 12px; font-weight: 600; }
-      .card img { max-width: 100%; height: auto; display: block; }
-      footer { margin-top: 40px; padding-top: 20px; border-top: 1px solid var(--line);
-               color: var(--muted); font-size: 0.85rem; }
-      code { background: var(--card); border: 1px solid var(--line); border-radius: 5px;
-             padding: 1px 5px; font-size: 0.85em; }
-      a { color: var(--accent); }
+      .spec div { background: var(--void); padding: 16px 18px; }
+      .spec dt {
+        font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase;
+        color: var(--dim); margin: 0 0 6px;
+      }
+      .spec dd {
+        margin: 0; font-size: 15px; font-weight: 500; color: var(--bright);
+        font-variant-numeric: tabular-nums;
+      }
+      .spec .accent { color: var(--amber); }
+
+      /* ---- card panels ------------------------------------------------ */
+      section.card { margin: 64px 0 0; }
+      .label {
+        display: flex; align-items: baseline; gap: 14px;
+        font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase;
+        color: var(--dim); margin: 0 0 14px;
+      }
+      .label .num { color: var(--amber); font-weight: 600; }
+      .label .rule { flex: 1; height: 1px; background: var(--line); }
+
+      /* The corner ticks are offset by -1px so they sit on the border itself.
+         That puts them outside the padding box, so the scroll container has to
+         be an inner element — otherwise every panel overflows by exactly 1px
+         and shows a scrollbar on desktop. */
+      .frame {
+        position: relative;
+        border: 1px solid var(--line);
+        background: var(--panel);
+        padding: 26px;
+      }
+      .frame-inner {
+        overflow-x: auto;
+        display: flex;
+        justify-content: center;
+      }
+      /* Corner ticks — a drafting detail that reads as instrumentation. */
+      .frame::before, .frame::after {
+        content: ""; position: absolute; width: 9px; height: 9px;
+        border-color: var(--line-bright); border-style: solid;
+      }
+      .frame::before { top: -1px; left: -1px; border-width: 1px 0 0 1px; border-color: var(--amber); }
+      .frame::after  { bottom: -1px; right: -1px; border-width: 0 1px 1px 0; border-color: var(--amber); }
+      .frame-inner img { max-width: 100%; height: auto; display: block; }
+
+      /* ---- notes ------------------------------------------------------ */
+      .note {
+        margin: 64px 0 0;
+        border-left: 2px solid var(--pink);
+        padding: 4px 0 4px 20px;
+        color: var(--text);
+        max-width: 62ch;
+      }
+      .note strong { color: var(--bright); font-weight: 600; }
+
+      footer {
+        margin: 72px 0 0; padding-top: 24px;
+        border-top: 1px solid var(--line);
+        font-size: 12px; color: var(--dim);
+      }
+      footer p { max-width: 62ch; }
+      footer a { color: var(--text); }
+      footer a:hover { color: var(--amber); }
+      .meta {
+        margin-top: 18px; display: flex; flex-wrap: wrap; gap: 8px 14px;
+        font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase;
+      }
+      code {
+        color: var(--cyan);
+        background: rgba(169, 254, 247, 0.06);
+        border: 1px solid rgba(169, 254, 247, 0.14);
+        border-radius: 3px; padding: 1px 6px; font-size: 0.92em;
+      }
+
+      /* One orchestrated entrance rather than scattered micro-animations. */
+      .reveal { opacity: 0; transform: translateY(14px); animation: rise 0.7s cubic-bezier(0.2, 0.7, 0.3, 1) forwards; }
+      @keyframes rise { to { opacity: 1; transform: none; } }
+      .d1 { animation-delay: 0.05s; } .d2 { animation-delay: 0.14s; }
+      .d3 { animation-delay: 0.23s; } .d4 { animation-delay: 0.32s; }
+
+      @media (prefers-reduced-motion: reduce) {
+        *, *::before, *::after { animation: none !important; transition: none !important; }
+        .reveal { opacity: 1; transform: none; }
+        html { scroll-behavior: auto; }
+      }
+
+      @media (max-width: 640px) {
+        .wrap { padding-bottom: 64px; }
+        header { padding: 48px 0 36px; }
+        .frame { padding: 16px 14px; }
+
+        /* Let wide cards scroll at their natural size rather than shrink.
+           The trophy card is over 1100px wide; scaled into a 375px viewport
+           its labels become unreadable, which defeats the point of showing it.
+           A horizontal scroll inside the panel is the lesser cost. */
+        .frame-inner { justify-content: flex-start; }
+        .frame-inner img { max-width: none; }
+      }
     </style>
   </head>
-  <body>
-    <main>
-      <h1>Profile Cards</h1>
-      <p class="sub">
-        Self-hosted GitHub stat cards for
-        <a href="https://github.com/admoseley">@admoseley</a>, rendered every six
-        hours and served as static SVGs.
-      </p>
 
-      <div class="card">
-        <h2>Trophies</h2>
-        <img src="/trophy.svg" alt="GitHub trophies" />
+  <body>
+    <div class="glow" aria-hidden="true"></div>
+
+    <div class="wrap">
+      <div class="status reveal d1">
+        <span class="live"><span class="dot" aria-hidden="true"></span> Operational</span>
+        <span class="sep">/</span>
+        <span>Build __VERSION__</span>
+        <span class="sep">/</span>
+        <span>Rendered __GENERATED_AT__</span>
       </div>
-      <div class="card">
-        <h2>Stats</h2>
-        <img src="/stats.svg" alt="GitHub stats" />
-      </div>
-      <div class="card">
-        <h2>Top languages</h2>
-        <img src="/top-langs.svg" alt="Top languages" />
-      </div>
-      <div class="card">
-        <h2>Top contributed repos</h2>
-        <img src="/top-repos.svg" alt="Top contributed repositories" />
+
+      <header>
+        <p class="eyebrow reveal d1">Self-hosted telemetry</p>
+        <h1 class="reveal d2">Profile Cards<br /><span class="thin">for @admoseley</span></h1>
+        <p class="lede reveal d3">
+          Four GitHub stat cards, prerendered every six hours in GitHub Actions
+          and served as static SVGs from Azure. They replace third-party
+          services that shut down because their maintainers could no longer
+          carry the hosting cost —
+          <a href="https://github.com/admoseley/profile-cards-azure">source</a>.
+        </p>
+
+        <dl class="spec reveal d4">
+          <div><dt>Monthly cost</dt><dd class="accent">$0.00</dd></div>
+          <div><dt>Cadence</dt><dd>6 hours</dd></div>
+          <div><dt>Cards</dt><dd>4</dd></div>
+          <div><dt>Runtime</dt><dd>Static</dd></div>
+        </dl>
+      </header>
+
+      <section class="card">
+        <p class="label"><span class="num">01</span> Trophies <span class="rule"></span> <span>Deno</span></p>
+        <div class="frame"><div class="frame-inner"><img src="/trophy.svg" alt="GitHub trophy card showing ranks across commits, issues, pull requests and repositories" /></div></div>
+      </section>
+
+      <section class="card">
+        <p class="label"><span class="num">02</span> Stats <span class="rule"></span> <span>Node</span></p>
+        <div class="frame"><div class="frame-inner"><img src="/stats.svg" alt="GitHub statistics card showing total stars, commits, pull requests and issues" /></div></div>
+      </section>
+
+      <section class="card">
+        <p class="label"><span class="num">03</span> Languages <span class="rule"></span> <span>Node</span></p>
+        <div class="frame"><div class="frame-inner"><img src="/top-langs.svg" alt="Card showing most used programming languages by proportion" /></div></div>
+      </section>
+
+      <section class="card">
+        <p class="label"><span class="num">04</span> Repositories <span class="rule"></span> <span>Custom</span></p>
+        <div class="frame"><div class="frame-inner"><img src="/top-repos.svg" alt="Card ranking most contributed repositories by commit count" /></div></div>
+      </section>
+
+      <div class="note">
+        <p>
+          <strong>Why the numbers changed.</strong> A public card service queries
+          GitHub with its own token, so it can only ever see public
+          repositories. Most of these commits are private. Rendering under a
+          personal token counts that work — private repositories are ranked
+          here, but never named.
+        </p>
       </div>
 
       <footer>
         <p>
-          These replace third-party services that shut down for cost reasons.
-          Rendering runs in GitHub Actions; this host only serves files, so it
-          costs nothing and cannot be loaded by anyone else's traffic.
+          There is no server. GitHub Actions renders the SVGs on a schedule and
+          publishes them; this host only returns files. That is why it costs
+          nothing, and why no one else's traffic can ever load it into the
+          failure that took down the originals.
         </p>
-        <p>
-          Version <code>__VERSION__</code> &middot; generated
-          <code>__GENERATED_AT__</code> &middot;
-          <a href="/health.json">health.json</a> &middot;
-          <a href="https://github.com/admoseley/profile-cards-azure">source</a>
+        <p class="meta">
+          <span>Build <code>__VERSION__</code></span>
+          <a href="/health.json">health.json</a>
+          <a href="https://github.com/admoseley/profile-cards-azure">Repository</a>
+          <a href="https://github.com/admoseley">Profile</a>
         </p>
       </footer>
-    </main>
+    </div>
   </body>
 </html>
