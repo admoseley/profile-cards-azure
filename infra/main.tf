@@ -11,8 +11,6 @@
 # serves static files. The design is described in the repository README.
 # ---------------------------------------------------------------------------
 
-data "azurerm_subscription" "current" {}
-
 locals {
   tags = merge(
     {
