@@ -1,0 +1,49 @@
+# CI for the profile-cards site.
+#
+# Jobs are deliberately separate so a red check points straight at the layer
+# that broke rather than at one monolithic "CI failed".
+#
+# Renderer lint/test jobs land alongside the renderers themselves (issue #2);
+# right now there is no application code, so the secret scan is the whole of CI.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  secret-scan:
+    name: Secret scan (gitleaks)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Full history, not just the diff. A secret that was committed and
+          # then removed in a later commit is still in the history and still
+          # leaked — scanning only the PR diff would miss exactly that case.
+          fetch-depth: 0
+
+      # The open-source CLI is used directly rather than gitleaks/gitleaks-action:
+      # the action wrapper requires a paid licence for private repos, so running
+      # the CLI keeps this workflow copy-pastable to Adrian's private repos
+      # unchanged. Version is pinned so a new release cannot change CI behaviour
+      # underneath us.
+      - name: Install gitleaks
+        env:
+          GITLEAKS_VERSION: 8.21.2
+        run: |
+          set -euo pipefail
+          curl -sSfL \
+            "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz" \
+            -o /tmp/gitleaks.tar.gz
+          tar -xzf /tmp/gitleaks.tar.gz -C /tmp gitleaks
+          sudo install -m 0755 /tmp/gitleaks /usr/local/bin/gitleaks
+          gitleaks version
+
+      - name: Scan full history
+        run: gitleaks detect --source . --redact --verbose --exit-code 1

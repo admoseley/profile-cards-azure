@@ -1,0 +1,27 @@
+# Dependencies
+node_modules/
+
+# Upstream renderer checkouts, fetched at build time and never committed.
+# The trophy and readme-stats sources are pinned in CI, not vendored here.
+vendor/
+
+# Generated site output. Source lives in site-src/; the render pipeline
+# assembles site/ from it plus the freshly rendered SVGs.
+site/
+
+# Secrets — the render PAT and SWA deploy token live in GitHub Actions
+# secrets, never on disk. Nothing in this repo should ever read a .env.
+.env
+.env.*
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+tfplan
+*.tfvars
+!*.tfvars.example
+crash.log
+
+# macOS
+.DS_Store
