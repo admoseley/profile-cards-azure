@@ -31,6 +31,12 @@ fi
 
 cp site-src/staticwebapp.config.json "${OUT}/staticwebapp.config.json"
 
+# Self-hosted webfonts. Deliberately not loaded from a font CDN: this project
+# exists because third-party dependencies went away, and a strict
+# default-src 'self' CSP would block them anyway.
+mkdir -p "${OUT}/fonts"
+cp site-src/fonts/*.woff2 "${OUT}/fonts/"
+
 sed -e "s|__VERSION__|${VERSION}|g" \
     -e "s|__GENERATED_AT__|${GENERATED_AT}|g" \
     site-src/index.html > "${OUT}/index.html"
