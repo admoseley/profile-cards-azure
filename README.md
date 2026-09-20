@@ -42,6 +42,26 @@ matches that freshness exactly while being:
 - **structurally single-user** — there is no endpoint anyone else can call, so this can
   never accumulate the traffic-driven cost that killed the upstream services.
 
+## Pipeline
+
+`render-and-deploy.yml` runs every six hours, on manual dispatch, and on pushes
+that touch the renderers or the site source.
+
+1. Verify the token can see private contributions — fail before rendering if not.
+2. Render stats, top-langs and top-repos (Node), then the trophy (Deno, via the
+   fork's composite action, pinned to a commit).
+3. Assemble `site/`, which **refuses to continue unless all four cards are
+   present and non-empty** — a partial render leaves the live site untouched
+   rather than publishing broken images.
+4. Deploy to Static Web Apps, and tag the rollout on code deploys only.
+
+Verify a deploy by comparing `/health.json`'s version against the commit that
+was merged, rather than trusting a green pipeline.
+
+```bash
+curl -s https://trophy.clouddev.adrianmoseley.com/health.json
+```
+
 ## Phase 1 decisions
 
 - **Replacing something live?** Yes — three dead third-party services. Migration, not

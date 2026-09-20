@@ -1,0 +1,135 @@
+# Renders all four cards and publishes them to Azure Static Web Apps.
+#
+# Runs every six hours, matching the cache window the upstream trophy service
+# already used (CONSTANTS.REVALIDATE_TIME), so freshness is unchanged from the
+# service this replaces while costing nothing to run.
+#
+# There is no `production` environment approval gate on this workflow. That gate
+# protects *code* reaching production; a cron regenerating data artifacts every
+# six hours cannot have a human in the loop without defeating itself. Code
+# changes still go through issue -> branch -> PR -> squash merge.
+name: Render and deploy
+
+on:
+  schedule:
+    # Every 6 hours. GitHub runs scheduled workflows on a best-effort basis and
+    # may delay them under load; the cards tolerate that, since a stale card is
+    # still a correct card.
+    - cron: "17 */6 * * *"
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "renderers/**"
+      - "site-src/**"
+      - "scripts/assemble-site.sh"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/render-and-deploy.yml"
+
+permissions:
+  contents: write # needed to push the rollout tag on code deploys
+
+# Never let two deploys race. Newer content supersedes older, so a queued run
+# can be dropped rather than run after the one behind it.
+concurrency:
+  group: render-and-deploy
+  cancel-in-progress: false
+
+jobs:
+  render-and-deploy:
+    name: Render cards and deploy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Fail early and clearly if the deploy token was never set, rather than
+      # rendering everything and then failing inside the deploy action with an
+      # opaque error.
+      - name: Check deploy token is configured
+        env:
+          SWA_TOKEN: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
+        run: |
+          if [[ -z "${SWA_TOKEN}" ]]; then
+            echo "::error::AZURE_STATIC_WEB_APPS_API_TOKEN is not set. Run terraform apply, then:" \
+                 "terraform output -raw deployment_token | gh secret set AZURE_STATIC_WEB_APPS_API_TOKEN"
+            exit 1
+          fi
+
+      # Rollout version, yyyymmdd.HH.MM in UTC.
+      #
+      # It is not in `run-name`: that expression is evaluated before any step
+      # runs and cannot read step outputs, and there is no way to compute a UTC
+      # timestamp in the expression language. It is surfaced in the step summary,
+      # in health.json, and as the git tag instead.
+      - name: Compute rollout version
+        id: version
+        run: echo "value=$(date -u +'%Y%m%d.%H.%M')" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      # Renders stats, top-langs and top-repos. Fails loudly if the token cannot
+      # see private contributions, before anything is written.
+      - name: Render Node cards
+        env:
+          PROFILE_STATS_PAT: ${{ secrets.PROFILE_STATS_PAT }}
+        run: node renderers/render-all.mjs
+
+      # The trophy is a Deno project, rendered by the composite action in the
+      # fork. Pinned to a commit rather than a branch: this action receives the
+      # PAT, so it must not be able to change underneath us.
+      - name: Render trophy card
+        uses: admoseley/github-profile-trophy-azure@e3c89df995e92e67cdd4b2acaab9d974583dc1f7
+        with:
+          username: admoseley
+          output_path: site/trophy.svg
+          token: ${{ secrets.PROFILE_STATS_PAT }}
+          theme: radical
+
+      # Refuses to continue unless all four cards are present and non-empty, so
+      # a partial render leaves the live site untouched.
+      - name: Assemble site
+        env:
+          GITHUB_SHA: ${{ github.sha }}
+        run: scripts/assemble-site.sh "${{ steps.version.outputs.value }}"
+
+      - name: Deploy to Azure Static Web Apps
+        uses: Azure/static-web-apps-deploy@v1
+        with:
+          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
+          action: "upload"
+          skip_app_build: true
+          app_location: "site"
+          output_location: ""
+
+      # Tag only on code deploys. Tagging the six-hourly content refresh would
+      # create roughly 120 tags a month and bury the ones that mean something.
+      - name: Tag rollout
+        if: github.event_name != 'schedule'
+        env:
+          VERSION: ${{ steps.version.outputs.value }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -a "v${VERSION}" -m "Rollout ${VERSION}"
+          git push origin "v${VERSION}"
+
+      - name: Summary
+        env:
+          VERSION: ${{ steps.version.outputs.value }}
+        run: |
+          {
+            echo "### Rollout \`${VERSION}\`"
+            echo
+            echo "| Card | Size |"
+            echo "|---|---|"
+            for f in trophy stats top-langs top-repos; do
+              echo "| ${f}.svg | $(wc -c < "site/${f}.svg") bytes |"
+            done
+          } >> "$GITHUB_STEP_SUMMARY"
