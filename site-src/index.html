@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Profile Cards</title>
+    <meta name="description" content="Self-hosted GitHub profile cards for @admoseley, prerendered every six hours." />
+    <meta name="rollout-version" content="__VERSION__" />
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='14' font-size='14'>&#127942;</text></svg>" />
+    <style>
+      :root {
+        --bg: #ffffff;
+        --fg: #1f2328;
+        --muted: #59636e;
+        --line: #d1d9e0;
+        --accent: #0969da;
+        --card: #f6f8fa;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root:not([data-theme="light"]) {
+          --bg: #0d1117;
+          --fg: #e6edf3;
+          --muted: #9198a1;
+          --line: #30363d;
+          --accent: #4493f8;
+          --card: #151b23;
+        }
+      }
+      :root[data-theme="dark"] {
+        --bg: #0d1117;
+        --fg: #e6edf3;
+        --muted: #9198a1;
+        --line: #30363d;
+        --accent: #4493f8;
+        --card: #151b23;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        padding: 48px 16px 64px;
+        background: var(--bg);
+        color: var(--fg);
+        font: 16px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Ubuntu, sans-serif;
+      }
+      main { max-width: 640px; margin: 0 auto; }
+      h1 { font-size: 1.6rem; margin: 0 0 4px; letter-spacing: -0.01em; }
+      .sub { color: var(--muted); margin: 0 0 32px; }
+      .card {
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        background: var(--card);
+        padding: 16px;
+        margin-bottom: 16px;
+      }
+      .card h2 { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.06em;
+                 color: var(--muted); margin: 0 0 12px; font-weight: 600; }
+      .card img { max-width: 100%; height: auto; display: block; }
+      footer { margin-top: 40px; padding-top: 20px; border-top: 1px solid var(--line);
+               color: var(--muted); font-size: 0.85rem; }
+      code { background: var(--card); border: 1px solid var(--line); border-radius: 5px;
+             padding: 1px 5px; font-size: 0.85em; }
+      a { color: var(--accent); }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Profile Cards</h1>
+      <p class="sub">
+        Self-hosted GitHub stat cards for
+        <a href="https://github.com/admoseley">@admoseley</a>, rendered every six
+        hours and served as static SVGs.
+      </p>
+
+      <div class="card">
+        <h2>Trophies</h2>
+        <img src="/trophy.svg" alt="GitHub trophies" />
+      </div>
+      <div class="card">
+        <h2>Stats</h2>
+        <img src="/stats.svg" alt="GitHub stats" />
+      </div>
+      <div class="card">
+        <h2>Top languages</h2>
+        <img src="/top-langs.svg" alt="Top languages" />
+      </div>
+      <div class="card">
+        <h2>Top contributed repos</h2>
+        <img src="/top-repos.svg" alt="Top contributed repositories" />
+      </div>
+
+      <footer>
+        <p>
+          These replace third-party services that shut down for cost reasons.
+          Rendering runs in GitHub Actions; this host only serves files, so it
+          costs nothing and cannot be loaded by anyone else's traffic.
+        </p>
+        <p>
+          Version <code>__VERSION__</code> &middot; generated
+          <code>__GENERATED_AT__</code> &middot;
+          <a href="/health.json">health.json</a> &middot;
+          <a href="https://github.com/admoseley/profile-cards-azure">source</a>
+        </p>
+      </footer>
+    </main>
+  </body>
+</html>
