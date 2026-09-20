@@ -1,0 +1,8 @@
+# Copy to terraform.tfvars and fill in. terraform.tfvars is gitignored:
+# alert_email is a real address and this repository is public.
+
+alert_email = "you@example.com"
+
+# Leave false for the first apply. See infra/README.md for the two-pass
+# sequence — the CNAME target does not exist until the Static Web App does.
+enable_custom_domain = false
