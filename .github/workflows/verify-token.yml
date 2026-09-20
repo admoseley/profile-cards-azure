@@ -1,0 +1,37 @@
+# Manually-triggered check that PROFILE_STATS_PAT can still see private
+# contributions.
+#
+# This exists because the secret is write-only from the outside: nobody,
+# including the person who set it, can read the value back. The only way to
+# prove a token works is to use it where it lives. Run this after rotating the
+# token, or to test whether a fine-grained PAT is sufficient before retiring a
+# broadly-scoped classic one.
+#
+# Output is aggregate counts only. GitHub also masks the secret in logs, but
+# the script never prints it regardless.
+name: Verify token
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Check private contribution access
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Verify token sees private contributions
+        env:
+          PROFILE_STATS_PAT: ${{ secrets.PROFILE_STATS_PAT }}
+        run: node renderers/verify-token.mjs

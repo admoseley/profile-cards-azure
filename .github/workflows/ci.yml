@@ -3,8 +3,10 @@
 # Jobs are deliberately separate so a red check points straight at the layer
 # that broke rather than at one monolithic "CI failed".
 #
-# Renderer lint/test jobs land alongside the renderers themselves (issue #2);
-# right now there is no application code, so the secret scan is the whole of CI.
+# The renderer job deliberately does NOT render a real card: that needs a token
+# with private-repo access, and spending API calls (and exposing the secret) on
+# every PR buys little. Real rendering is proven by the verify-token workflow
+# and by the deploy pipeline itself.
 name: CI
 
 on:
@@ -47,3 +49,34 @@ jobs:
 
       - name: Scan full history
         run: gitleaks detect --source . --redact --verbose --exit-code 1
+
+  renderers:
+    name: Renderers (install + syntax)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      # `npm ci` fails if package.json and package-lock.json disagree, which
+      # also makes this a lockfile-drift check.
+      - run: npm ci
+
+      - name: Syntax-check renderer modules
+        run: |
+          set -euo pipefail
+          find renderers -name '*.mjs' -print0 | xargs -0 -n1 node --check
+          echo "All renderer modules parsed."
+
+      # The card must never name a private repository. This asserts the
+      # anonymisation path exists rather than trusting that a future edit keeps
+      # it — the card is published publicly, so a regression here leaks the
+      # names of unreleased projects.
+      - name: Assert private-repo anonymisation is present
+        run: |
+          set -euo pipefail
+          grep -q 'Private repository' renderers/top-repos.mjs
+          echo "Anonymisation label present."

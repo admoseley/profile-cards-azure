@@ -1,0 +1,17 @@
+{
+  "name": "profile-cards-azure",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Self-hosted GitHub profile cards, prerendered to Azure Static Web Apps",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "render": "node renderers/render-all.mjs",
+    "lint": "node --check-all 2>/dev/null || true"
+  },
+  "dependencies": {
+    "@stats-organization/github-readme-stats-core": "2.2.0"
+  }
+}
