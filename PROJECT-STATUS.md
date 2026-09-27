@@ -72,7 +72,9 @@ commits are private, and only a personal token can see them.
 - **The renderer never throws on a fetch failure** — it returns a "Something
   went wrong" SVG with a status beginning `error`. Treated as fatal.
 - **PAT scope: `repo` alone is sufficient**, verified in CI. `read:user` is not
-  needed. Classic `repo` also grants write, which is more than this needs; a
+  needed. Changing a classic PAT's *expiry* regenerates it and kills the stored
+  secret (`401 Bad credentials`); changing its *scope* does not. Re-set the
+  secret and prove it with `verify-token.yml` after any expiry change. Classic `repo` also grants write, which is more than this needs; a
   fine-grained token would be tighter but is untested against these queries.
   `verify-token.yml` exists to test one safely.
 - **The custom domain needs two applies.** Validation is by CNAME delegation, so
@@ -86,7 +88,7 @@ commits are private, and only a personal token can see them.
 | Issue | |
 |---|---|
 | [#6](https://github.com/admoseley/profile-cards-azure/issues/6) | Streak card still on a free Heroku app — same risk class as the ones that died |
-| [#9](https://github.com/admoseley/profile-cards-azure/issues/9) | **PAT expires 2026-10-20.** Fails safe: cards go stale, not blank |
+| [#9](https://github.com/admoseley/profile-cards-azure/issues/9) | **PAT expires ~2027-09-26** (rotated 2026-09-27). Fails safe: cards go stale, not blank |
 | [#12](https://github.com/admoseley/profile-cards-azure/issues/12) | Terraform perpetually reverts metadata the deploy action sets — fix with `ignore_changes` so a plan is empty when nothing changed |
 
 ## Setup, all completed
