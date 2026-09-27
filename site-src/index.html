@@ -278,7 +278,7 @@
         <p class="eyebrow reveal d1">Self-hosted telemetry</p>
         <h1 class="reveal d2">Profile Cards<br /><span class="thin">for @admoseley</span></h1>
         <p class="lede reveal d3">
-          Five GitHub stat cards, prerendered every six hours in GitHub Actions
+          Eight rendered graphics, prerendered every six hours in GitHub Actions
           and served as static SVGs from Azure. They replace third-party
           services that shut down because their maintainers could no longer
           carry the hosting cost —
@@ -288,8 +288,8 @@
         <dl class="spec reveal d4">
           <div><dt>Monthly cost</dt><dd class="accent">$0.00</dd></div>
           <div><dt>Cadence</dt><dd>6 hours</dd></div>
-          <div><dt>Cards</dt><dd>5</dd></div>
-          <div><dt>Runtime</dt><dd>Static</dd></div>
+          <div><dt>Graphics</dt><dd>8</dd></div>
+          <div><dt>Themes</dt><dd>Light + dark</dd></div>
         </dl>
       </header>
 
@@ -316,6 +316,16 @@
       <section class="card">
         <p class="label"><span class="num">05</span> Streak <span class="rule"></span> <span>Custom</span></p>
         <div class="frame"><div class="frame-inner"><img src="/streak.svg" alt="Contribution streak card showing total contributions, current streak and longest streak" /></div></div>
+      </section>
+
+      <section class="card">
+        <p class="label"><span class="num">06</span> Activity <span class="rule"></span> <span>Custom</span></p>
+        <div class="frame"><div class="frame-inner"><img src="/activity.svg" alt="Area chart of contribution activity over the last twelve months" /></div></div>
+      </section>
+
+      <section class="card">
+        <p class="label"><span class="num">07</span> Architecture <span class="rule"></span> <span>Custom</span></p>
+        <div class="frame"><div class="frame-inner"><img src="/architecture.svg" alt="Diagram of the rendering pipeline: GitHub Actions renders SVGs and deploys them to an Azure Static Web App, served to the profile through GitHub's camo proxy" /></div></div>
       </section>
 
       <div class="note">

@@ -52,6 +52,26 @@ export const THEMES = {
     border: "#e4e2e2",
     accent: "#2f80ed",
   },
+  /* Light theme is chosen, not an automatic inversion of the dark one. The
+     amber accent is darkened to #b45309 so it still clears contrast against a
+     white surface, where #fb8c00 would not. */
+  light: {
+    title: "#b45309",
+    text: "#4b5563",
+    bg: "#ffffff",
+    border: "#d1d9e0",
+    accent: "#b45309",
+    ink: "#111827",
+    grid: "#e5e7eb",
+  },
 };
+
+/* Extra tokens the dark themes need for the hero and activity charts. */
+THEMES.dark.ink = "#eef1f4";
+THEMES.dark.grid = "#232830";
+THEMES.radical.ink = "#ffffff";
+THEMES.radical.grid = "#2a2838";
+THEMES.default.ink = "#1f2328";
+THEMES.default.grid = "#e5e7eb";
 
 export const resolveTheme = (name) => THEMES[name] ?? THEMES.dark;

@@ -118,7 +118,7 @@ export function renderStreak({ total, created, streaks }, { theme = "dark" } = {
 
   const panel = (x, big, label, sub, accent) => `
     <g transform="translate(${x}, 0)">
-      <text x="${col / 2}" y="78" text-anchor="middle" fill="${accent ? t.accent : t.bright ?? "#e6edf3"}"
+      <text x="${col / 2}" y="78" text-anchor="middle" fill="${accent ? t.accent : t.ink}"
             font-size="28" font-weight="700">${escapeXml(big)}</text>
       <text x="${col / 2}" y="104" text-anchor="middle" fill="${accent ? t.accent : t.text}"
             font-size="13" font-weight="600">${escapeXml(label)}</text>
