@@ -19,6 +19,7 @@ import {
   assertPrivateAccess,
 } from "./lib/token.mjs";
 import { fetchTopRepos, renderTopRepos } from "./top-repos.mjs";
+import { fetchContributionDays, computeStreaks, renderStreak } from "./streak.mjs";
 
 const USERNAME = process.env.PROFILE_USERNAME || "admoseley";
 const OUT_DIR = path.resolve(process.cwd(), process.env.OUT_DIR || "site");
@@ -87,12 +88,19 @@ async function main() {
   const repoRows = await fetchTopRepos({ username: USERNAME, token, limit: 5 });
   const topRepos = renderTopRepos(repoRows, { theme: "dark" });
 
+  // Walks the contribution calendar a year at a time from account creation,
+  // so "total" and "longest streak" are all-time rather than trailing-year.
+  const contributions = await fetchContributionDays({ username: USERNAME, token });
+  const streaks = computeStreaks(contributions.days);
+  const streak = renderStreak({ ...contributions, streaks }, { theme: "dark" });
+
   await mkdir(OUT_DIR, { recursive: true });
   const written = [];
   for (const [file, svg] of [
     ["stats.svg", stats],
     ["top-langs.svg", topLangs],
     ["top-repos.svg", topRepos],
+    ["streak.svg", streak],
   ]) {
     const dest = path.join(OUT_DIR, file);
     await writeFile(dest, svg, "utf8");
@@ -103,6 +111,9 @@ async function main() {
   for (const w of written) console.log(`  - ${w}`);
   console.log(
     `Top repos: ${repoRows.map((r) => `${r.label}=${r.commits}`).join(", ")}`,
+  );
+  console.log(
+    `Streak: ${contributions.total} total, current ${streaks.current}d, longest ${streaks.longest}d`,
   );
 }
 
