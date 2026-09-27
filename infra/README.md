@@ -53,11 +53,22 @@ Wait for it to resolve, and check rather than assume:
 dig +short trophy.clouddev.adrianmoseley.com CNAME
 ```
 
-Then bind it:
+Then set it **in `terraform.tfvars`**, not on the command line:
+
+```hcl
+enable_custom_domain = true
+```
 
 ```bash
-terraform apply -var enable_custom_domain=true
+terraform apply
 ```
+
+> **Do not use `-var enable_custom_domain=true` for this.** Command-line
+> variables are not persisted, so the next bare `terraform apply` reads `false`
+> from `terraform.tfvars` again and **destroys the custom domain binding**,
+> taking the site off its domain. This happened here: a plan run after the
+> domain was bound reported `1 to destroy`. Persist the value in the file so
+> the committed intent and the live state agree.
 
 Azure issues a managed certificate automatically; the first HTTPS request can
 take a few minutes after binding.

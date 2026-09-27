@@ -3,6 +3,9 @@
 
 alert_email = "you@example.com"
 
-# Leave false for the first apply. See infra/README.md for the two-pass
-# sequence — the CNAME target does not exist until the Static Web App does.
+# Leave false for the first apply — the CNAME target does not exist until the
+# Static Web App does. Set it to true HERE (not with -var) once the record
+# resolves: a command-line var is not persisted, so the next bare apply would
+# read false again and destroy the domain binding.
+# See infra/README.md for the two-pass sequence.
 enable_custom_domain = false
