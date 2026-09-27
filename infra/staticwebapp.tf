@@ -19,6 +19,22 @@ resource "azurerm_static_web_app" "main" {
   preview_environments_enabled = false
 
   tags = local.tags
+
+  # Azure/static-web-apps-deploy stamps repository_url and repository_branch
+  # onto the resource when it publishes. Terraform does not manage those, so
+  # without this it tries to null them on every plan, the next deploy sets them
+  # again, and the cycle repeats forever.
+  #
+  # The cost of that is not the churn itself — the fields are informational,
+  # since we deploy with the API token rather than Azure's built-in GitHub
+  # integration. It is that a plan which ALWAYS shows a change trains you to
+  # skim plans. That is exactly how a budget alert reached production addressed
+  # to "you@example.com" on 2026-09-20: the diff was on screen and scrolled
+  # past. A plan should be empty when nothing has changed, so that a non-empty
+  # plan means something.
+  lifecycle {
+    ignore_changes = [repository_url, repository_branch]
+  }
 }
 
 # ---------------------------------------------------------------------------
