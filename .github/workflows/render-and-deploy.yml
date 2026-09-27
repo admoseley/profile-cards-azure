@@ -91,6 +91,17 @@ jobs:
           token: ${{ secrets.PROFILE_STATS_PAT }}
           theme: radical
 
+      # Light variant, so the README can serve whichever matches the viewer's
+      # GitHub theme. Every other card renders both themes in render-all.mjs;
+      # the trophy is a separate Deno action, so it needs a second invocation.
+      - name: Render trophy card (light)
+        uses: admoseley/github-profile-trophy-azure@e3c89df995e92e67cdd4b2acaab9d974583dc1f7
+        with:
+          username: admoseley
+          output_path: site/trophy-light.svg
+          token: ${{ secrets.PROFILE_STATS_PAT }}
+          theme: default
+
       # Refuses to continue unless all four cards are present and non-empty, so
       # a partial render leaves the live site untouched.
       - name: Assemble site
@@ -129,7 +140,7 @@ jobs:
             echo
             echo "| Card | Size |"
             echo "|---|---|"
-            for f in trophy stats top-langs top-repos; do
+            for f in trophy stats top-langs top-repos streak hero activity architecture; do
               echo "| ${f}.svg | $(wc -c < "site/${f}.svg") bytes |"
             done
           } >> "$GITHUB_STEP_SUMMARY"
