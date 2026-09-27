@@ -17,7 +17,7 @@ The profile README depended on four third-party card services. Three were dead a
 | Trophies | `github-profile-trophy.vercel.app` | 402 Payment Required |
 | Stats + Top Langs | `github-readme-stats.vercel.app` | 503 |
 | Top Contributed Repo | `github-contributor-stats.vercel.app` | 402 |
-| Streak | `github-readme-streak-stats.herokuapp.com` | 200 (alive) |
+| Streak | `github-readme-streak-stats.herokuapp.com` | 200, but self-hosted anyway |
 
 There is a second, independent problem that the outage was hiding. The profile showed ~330
 lifetime contributions despite heavy recent activity. Actual trailing-year contributions are
@@ -48,9 +48,9 @@ matches that freshness exactly while being:
 that touch the renderers or the site source.
 
 1. Verify the token can see private contributions — fail before rendering if not.
-2. Render stats, top-langs and top-repos (Node), then the trophy (Deno, via the
-   fork's composite action, pinned to a commit).
-3. Assemble `site/`, which **refuses to continue unless all four cards are
+2. Render stats, top-langs, top-repos and streak (Node), then the trophy (Deno,
+   via the fork's composite action, pinned to a commit).
+3. Assemble `site/`, which **refuses to continue unless all five cards are
    present and non-empty** — a partial render leaves the live site untouched
    rather than publishing broken images.
 4. Deploy to Static Web Apps, and tag the rollout on code deploys only.
@@ -82,7 +82,7 @@ vendor/       Upstream renderer checkouts, pinned in CI (gitignored)
 ```
 
 Published paths: `/trophy.svg`, `/stats.svg`, `/top-langs.svg`, `/top-repos.svg`,
-`/health.json`, and a landing page at `/`.
+`/streak.svg`, `/health.json`, and a landing page at `/`.
 
 ## Renderer sources
 
@@ -91,6 +91,13 @@ Published paths: `/trophy.svg`, `/stats.svg`, `/top-langs.svg`, `/top-repos.svg`
 | Trophy | [`admoseley/github-profile-trophy-azure`](https://github.com/admoseley/github-profile-trophy-azure) (fork), via its composite `action.yml` |
 | Stats, Top Langs | [`admoseley/github-readme-stats-azure`](https://github.com/admoseley/github-readme-stats-azure) (fork), imported at a pinned commit |
 | Top Repos | Written here, in `renderers/` |
+| Streak | Written here, in `renderers/` |
+
+The streak card is written from scratch too. Its host was the last one still
+responding, but it is the same bet as the four that died — a free tier carrying
+someone else's traffic. Self-hosting also corrects its numbers: queried
+publicly it reported 330 lifetime contributions and a 0-day streak, where the
+same account under a personal token shows 1022.
 
 Top Repos is written from scratch because the `github-contributor-stats.vercel.app` upstream
 is undiscoverable — a GitHub code search surfaces only READMEs pointing at the dead URL, with

@@ -15,7 +15,7 @@ OUT="${OUT_DIR:-site}"
 # images while the pipeline reported success — the exact failure that let the
 # original breakage go unnoticed for months. Fail before deploying, so the
 # previously published cards stay live instead.
-REQUIRED=(trophy.svg stats.svg top-langs.svg top-repos.svg)
+REQUIRED=(trophy.svg stats.svg top-langs.svg top-repos.svg streak.svg)
 missing=()
 for card in "${REQUIRED[@]}"; do
   if [[ ! -s "${OUT}/${card}" ]]; then
@@ -48,7 +48,7 @@ cat > "${OUT}/health.json" <<JSON
   "version": "${VERSION}",
   "generatedAt": "${GENERATED_AT}",
   "commit": "${GITHUB_SHA:-local}",
-  "cards": ["trophy.svg", "stats.svg", "top-langs.svg", "top-repos.svg"]
+  "cards": ["trophy.svg", "stats.svg", "top-langs.svg", "top-repos.svg", "streak.svg"]
 }
 JSON
 
